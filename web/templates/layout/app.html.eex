@@ -34,11 +34,8 @@
     </div>
 
     <!-- Begin page content -->
-      <main role="main">
-        <%= render @view_module, @view_template, assigns %>
-      </main>
-
-
+    <%= render @view_module, @view_template, assigns %>
     <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
+    <script>require("web/static/js/app")</script>
   </body>
 </html>

@@ -1,8 +1,9 @@
 defmodule Chat.Endpoint do
+  use Pastelli.Phoenix.Endpoint
   use Phoenix.Endpoint, otp_app: :chat
+  plug Chat.Endpoint.SocketDispatchRouter
 
   socket "/socket", Chat.UserSocket
-
 
   # Serve at "/" the given assets from "priv/static" directory
   plug Plug.Static,
@@ -17,11 +18,10 @@ defmodule Chat.Endpoint do
     plug Phoenix.LiveReloader
   end
 
-
   plug Plug.Logger
 
   plug Plug.Parsers,
-    parsers: [:urlencoded, :multipart, :json],
+    parsers: [:urlencoded, :json],
     pass: ["*/*"],
     json_decoder: Poison
 

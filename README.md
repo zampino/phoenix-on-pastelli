@@ -1,144 +1,52 @@
 # Simple Chat Example
 > Built with the [Phoenix Framework](https://github.com/phoenixframework/phoenix)
 
-To start your new Phoenix application you have to:
+This app is running on top of [Elli](https://github.com/knutin/elli) Server through [`Pastelli`](https://github.com/zampino/pastelli) and
+[`Pastelli.Phoenix`](//github.com/zampino/pastelli_phoenix).
 
-1. Clone this repo, then cd to the new directory
-2. Install dependencies with `mix deps.get`
-3. (optional) Install npm dependencies to customize the ES6 js/Sass `npm install`
-4. Start Phoenix router with `mix phoenix.server`
+This is a fork of Chris McCord's [Phoenix Chat Example](https://github.com/chrismccord/phoenix_chat_example),
+with minimal changes to run with phoenix `>= 1.1.0`.
 
-Now you can visit `localhost:4000` from your browser.
+Server handler is configured in `config/config.exs#L11`
 
-## Live Demo
-http://phoenixchat.herokuapp.com
-
-
-## Example Code
-
-#### JavaScript
-```javascript
-import {Socket, LongPoller} from "phoenix"
-
-class App {
-
-  static init(){
-    let socket = new Socket("/socket", {
-      logger: ((kind, msg, data) => { console.log(`${kind}: ${msg}`, data) })
-    })
-
-    socket.connect({user_id: "123"})
-    var $status    = $("#status")
-    var $messages  = $("#messages")
-    var $input     = $("#message-input")
-    var $username  = $("#username")
-
-    socket.onOpen( ev => console.log("OPEN", ev) )
-    socket.onError( ev => console.log("ERROR", ev) )
-    socket.onClose( e => console.log("CLOSE", e))
-
-    var chan = socket.channel("rooms:lobby", {})
-    chan.join().receive("ignore", () => console.log("auth error"))
-               .receive("ok", () => console.log("join ok"))
-               .after(10000, () => console.log("Connection interruption"))
-    chan.onError(e => console.log("something went wrong", e))
-    chan.onClose(e => console.log("channel closed", e))
-
-    $input.off("keypress").on("keypress", e => {
-      if (e.keyCode == 13) {
-        chan.push("new:msg", {user: $username.val(), body: $input.val()})
-        $input.val("")
-      }
-    })
-
-    chan.on("new:msg", msg => {
-      $messages.append(this.messageTemplate(msg))
-      scrollTo(0, document.body.scrollHeight)
-    })
-
-    chan.on("user:entered", msg => {
-      var username = this.sanitize(msg.user || "anonymous")
-      $messages.append(`<br/><i>[${username} entered]</i>`)
-    })
-  }
-
-  static sanitize(html){ return $("<div/>").text(html).html() }
-
-  static messageTemplate(msg){
-    let username = this.sanitize(msg.user || "anonymous")
-    let body     = this.sanitize(msg.body)
-
-    return(`<p><a href='#'>[${username}]</a>&nbsp; ${body}</p>`)
-  }
-
-}
-
-$( () => App.init() )
-
-export default App
- ```
-
-#### Endpoint
 ```elixir
-# lib/chat/endpoint.ex
+use Mix.Config
+
+# Configures the endpoint
+# and the handler
+config :chat, Chat.Endpoint,
+  url: [host: "localhost"],
+  handler: Pastelli.Phoenix,
+  # ...
+```
+
+Elli-Websocket compatible socket dispatch rules are hooked-in per a
+compile time generated module plug in
+[`lib/chat/endpoint.ex`](https://github.com/zampino/phoenix-on-pastelli/blob/master/lib/chat/endpoint.ex)
+
+```elixir
 defmodule Chat.Endpoint do
-  use Phoenix.Endpoint
+  use Pastelli.Phoenix.Endpoint
+  use Phoenix.Endpoint, otp_app: :chat
+  plug Chat.Endpoint.SocketDispatchRouter
 
   socket "/socket", Chat.UserSocket
+
+  if code_reloading? do
+    socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
+    plug Phoenix.CodeReloader
+    plug Phoenix.LiveReloader
+  end
+
   ...
+
+  plug Plug.Session,
+    store: :cookie,
+    key: "_chat_key",
+    signing_salt: "LH6XmqGb",
+    encryption_salt: "CIPZg4Qo"
+
+  plug Chat.Router
 end
-```
 
-#### Socket
-```elixir
-# web/channels/user_socket.ex
-defmodule Chat.UserSocket do
-  use Phoenix.Socket
-
-  channel "rooms:*", Chat.RoomChannel
-
-  transport :websocket, Phoenix.Transports.WebSocket
-  transport :longpoll, Phoenix.Transports.LongPoll
-  ...
-end
-```
-
-#### Channel
-```elixir
-defmodule Chat.RoomChannel do
-  use Phoenix.Channel
-  require Logger
-
-  def join("rooms:lobby", message, socket) do
-    Process.flag(:trap_exit, true)
-    :timer.send_interval(5000, :ping)
-    send(self, {:after_join, message})
-
-    {:ok, socket}
-  end
-
-  def join("rooms:" <> _private_subtopic, _message, _socket) do
-    {:error, %{reason: "unauthorized"}}
-  end
-
-  def handle_info({:after_join, msg}, socket) do
-    broadcast! socket, "user:entered", %{user: msg["user"]}
-    push socket, "join", %{status: "connected"}
-    {:noreply, socket}
-  end
-  def handle_info(:ping, socket) do
-    push socket, "new:msg", %{user: "SYSTEM", body: "ping"}
-    {:noreply, socket}
-  end
-
-  def terminate(reason, _socket) do
-    Logger.debug"> leave #{inspect reason}"
-    :ok
-  end
-
-  def handle_in("new:msg", msg, socket) do
-    broadcast! socket, "new:msg", %{user: msg["user"], body: msg["body"]}
-    {:reply, {:ok, %{msg: msg["body"]}}, assign(socket, :user, msg["user"])}
-  end
-end
 ```
