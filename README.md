@@ -1,13 +1,12 @@
 # Simple Chat Example
 > Built with the [Phoenix Framework](https://github.com/phoenixframework/phoenix)
 
-This app is running on top of [Elli](https://github.com/knutin/elli) Server through [`Pastelli`](https://github.com/zampino/pastelli) and
-[`Pastelli.Phoenix`](//github.com/zampino/pastelli_phoenix).
+This is a fork of Chris McCord's [Phoenix Chat Example](https://github.com/chrismccord/phoenix_chat_example)
+running on top of [Elli](https://github.com/knutin/elli) Server through [`Pastelli`](https://github.com/zampino/pastelli) and
+[`Pastelli.Phoenix`](//github.com/zampino/pastelli_phoenix) ([README](https://github.com/zampino/pastelli_phoenix#pastelliphoenix) for more details).
 
-This is a fork of Chris McCord's [Phoenix Chat Example](https://github.com/chrismccord/phoenix_chat_example),
-with minimal changes to run with phoenix `>= 1.1.0`.
 
-Server handler is configured in `config/config.exs#L11`
+## Configuration
 
 ```elixir
 use Mix.Config
@@ -20,15 +19,14 @@ config :chat, Chat.Endpoint,
   # ...
 ```
 
-Elli-Websocket compatible socket dispatch rules are hooked-in per a
-compile time generated module plug in
-[`lib/chat/endpoint.ex`](https://github.com/zampino/phoenix-on-pastelli/blob/master/lib/chat/endpoint.ex)
+## Endpoint
 
 ```elixir
 defmodule Chat.Endpoint do
   use Pastelli.Phoenix.Endpoint
   use Phoenix.Endpoint, otp_app: :chat
-  plug Chat.Endpoint.SocketDispatchRouter
+
+  plug Pastelli.Phoenix.SocketDispatchRouter
 
   socket "/socket", Chat.UserSocket
 

@@ -1,7 +1,8 @@
 defmodule Chat.Endpoint do
   use Pastelli.Phoenix.Endpoint
   use Phoenix.Endpoint, otp_app: :chat
-  plug Chat.Endpoint.SocketDispatchRouter
+
+  plug Pastelli.Phoenix.SocketDispatchRouter
 
   socket "/socket", Chat.UserSocket
 
